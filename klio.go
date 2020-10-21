@@ -1,12 +1,14 @@
 package klio
 
 import (
+	"fmt"
 	"log"
 	"net"
 )
 
 type Klio struct {
 	Proto *Protocol
+	Mode  string
 }
 
 func NewKlio() *Klio {
@@ -15,7 +17,7 @@ func NewKlio() *Klio {
 
 func (k *Klio) AddProtocol(name, format string) {
 	if Contains(ALLOWED_FORMATS, format) == false {
-		log.Fatalln("Unsupported protocol message format: %s", format)
+		log.Fatalf("Unsupported protocol message format: %s\n", format)
 	}
 	var events = make(map[string]ProtocolHandler, 0)
 	var proto = &Protocol{Name: name, Format: format, Events: events}
@@ -27,6 +29,10 @@ func (k *Klio) On(msg string, handler ProtocolHandler) {
 }
 
 func (k *Klio) Serve(addr string) {
+
+	if k.Mode != "client" {
+		k.Mode = "client"
+	}
 
 	// Check that we have protocols defined
 	if k.Proto == nil {
@@ -44,7 +50,7 @@ func (k *Klio) Serve(addr string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	defer socket.Close()
+	// defer socket.Close()
 
 	// Accept Connections
 	for {
@@ -58,4 +64,34 @@ func (k *Klio) Serve(addr string) {
 		// Handle Connections
 		go k.HandleConnection(conn)
 	}
+}
+
+// Client
+func (k *Klio) Dial(addr string) {
+
+	fmt.Println("Dialing")
+
+	if k.Mode != "client" {
+		k.Mode = "client"
+	}
+
+	conn, err := net.Dial("tcp4", addr)
+
+	if err != nil {
+		log.Fatalln(err)
+	}
+	fmt.Fprintf(conn, "{\"msg\": \"hi\"}")
+
+	// reader := bufio.NewReader(conn)
+	// buf := make([]byte, 1024)
+	// reader.Read(buf)
+	// fmt.Println(buf)
+
+	// Todo: Wait for messages
+
+	// e.Encode("{\"msg\": \"hi\"}")
+
+	// Todo: Make concurrent and use channels
+
+	k.HandleConnection(conn)
 }

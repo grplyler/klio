@@ -2,6 +2,7 @@ package klio
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -17,9 +18,10 @@ func (k *Klio) Dispatch(event string, ctx *Context) {
 }
 
 func (k *Klio) HandleConnection(conn net.Conn) {
-	defer log.Printf("Connection from %s closing.", conn.RemoteAddr().String())
-	defer conn.Close()
+	// defer log.Printf("Connection from %s closing.", conn.RemoteAddr().String())
+	// defer conn.Close()
 	client := conn.RemoteAddr().String()
+	fmt.Println(conn)
 	// notify := make(chan error)
 
 	// Process Messages
@@ -28,12 +30,16 @@ func (k *Klio) HandleConnection(conn net.Conn) {
 
 		d := json.NewDecoder(conn)
 		err := d.Decode(&packet)
+
+		fmt.Println("Packet:", packet)
+
 		if err != nil {
+			fmt.Println("ERRROR:", err)
 			if err == io.EOF {
 				log.Println("Transmission finished with EOF. Closing.")
 				break
 			} else {
-				log.Println("Error %s packet:", err)
+				log.Printf("Error: %s", err)
 				break
 			}
 		}
@@ -41,7 +47,7 @@ func (k *Klio) HandleConnection(conn net.Conn) {
 		log.Printf("Got Packet: %s\n", packet)
 
 		if packet["msg"] == "exit" {
-			log.Println("%s requested disconnect.", client)
+			log.Printf("%s requested disconnect.\n", client)
 			break
 		}
 
@@ -53,6 +59,7 @@ func (k *Klio) HandleConnection(conn net.Conn) {
 			Event:   event,
 			Message: packet,
 			Client:  client,
+			Conn:    conn,
 		}
 
 		// Check that this is a valid message we handle handle
@@ -67,4 +74,15 @@ func (k *Klio) HandleConnection(conn net.Conn) {
 	}
 
 	log.Println("Got Connection from:", conn.LocalAddr().String())
+}
+
+func (k *Klio) ClientHandleConnection(conn net.Conn) {
+	d := json.NewDecoder(conn)
+	var packet map[string]interface{}
+	derr := d.Decode(&packet)
+	if derr != nil {
+		log.Fatalln(derr)
+	}
+	fmt.Println(packet)
+
 }
