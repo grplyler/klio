@@ -11,8 +11,17 @@ type Klio struct {
 	Mode  string
 }
 
+type H map[string]string
+
 func NewKlio() *Klio {
-	return &Klio{}
+	klio := &Klio{}
+	var events = make(map[string]ProtocolHandler, 0)
+
+	// Add Default Protocol //todo: decide if we want to do this
+	var proto = &Protocol{Name: "default", Format: "json", Handlers: events}
+	klio.Proto = proto
+	return klio
+
 }
 
 func (k *Klio) AddProtocol(name, format string) {
@@ -20,12 +29,14 @@ func (k *Klio) AddProtocol(name, format string) {
 		log.Fatalf("Unsupported protocol message format: %s\n", format)
 	}
 	var events = make(map[string]ProtocolHandler, 0)
-	var proto = &Protocol{Name: name, Format: format, Events: events}
+	var proto = &Protocol{Name: name, Format: format, Handlers: events}
 	k.Proto = proto
 }
 
-func (k *Klio) On(msg string, handler ProtocolHandler) {
-	k.Proto.Events[msg] = handler
+// Same as klio.Proto.AddHandler
+func (k *Klio) On(event string, handler ProtocolHandler) {
+	fmt.Println("Adding Protocol Handler:", event)
+	k.Proto.Handlers[event] = handler
 }
 
 func (k *Klio) Serve(addr string) {
@@ -41,7 +52,7 @@ func (k *Klio) Serve(addr string) {
 	}
 
 	// Check that there is at least one message handler on the protocol
-	if len(k.Proto.Events) == 0 {
+	if len(k.Proto.Handlers) == 0 {
 		log.Fatalf("Protocol '%s' has no message handlers.\n", k.Proto.Name)
 	}
 
@@ -50,7 +61,9 @@ func (k *Klio) Serve(addr string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	// defer socket.Close()
+	defer socket.Close()
+
+	exit := make(chan bool, 1)
 
 	// Accept Connections
 	for {
@@ -62,7 +75,7 @@ func (k *Klio) Serve(addr string) {
 		}
 
 		// Handle Connections
-		go k.HandleConnection(conn)
+		go k.HandleConnection(conn, exit)
 	}
 }
 
@@ -80,18 +93,12 @@ func (k *Klio) Dial(addr string) {
 	if err != nil {
 		log.Fatalln(err)
 	}
-	fmt.Fprintf(conn, "{\"msg\": \"hi\"}")
 
-	// reader := bufio.NewReader(conn)
-	// buf := make([]byte, 1024)
-	// reader.Read(buf)
-	// fmt.Println(buf)
+	exit := make(chan bool)
 
-	// Todo: Wait for messages
+	go k.HandleConnection(conn, exit)
 
-	// e.Encode("{\"msg\": \"hi\"}")
+	<-exit
+	fmt.Println("Client Shutdown")
 
-	// Todo: Make concurrent and use channels
-
-	k.HandleConnection(conn)
 }
