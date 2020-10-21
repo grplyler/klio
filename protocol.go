@@ -15,11 +15,11 @@ type Protocol struct {
 }
 
 type Context struct {
-	Klio    *Klio
-	Event   string
-	Conn    net.Conn
-	Client  string
-	Message map[string]interface{}
+	Klio       *Klio
+	Event      string
+	Conn       net.Conn
+	ClientAddr string
+	Message    map[string]interface{}
 }
 
 type ProtocolError struct {
@@ -51,7 +51,7 @@ func (p *Protocol) Validate(ctx *Context) *ProtocolError {
 	if p.Handlers[ctx.Event] == nil {
 		return &ProtocolError{
 			Event:   ctx.Event,
-			Message: fmt.Sprintf("Invalid event '%s' from '%s'", ctx.Event, ctx.Client),
+			Message: fmt.Sprintf("Invalid event '%s' from '%s'", ctx.Event, ctx.ClientAddr),
 		}
 	}
 

@@ -33,10 +33,10 @@ func (k *Klio) HandleConnection(conn net.Conn, exit chan bool) {
 
 	// Send Startup Message
 	context := &Context{
-		Klio:   k,
-		Event:  "_connect",
-		Client: client,
-		Conn:   conn,
+		Klio:       k,
+		Event:      "_connect",
+		ClientAddr: client,
+		Conn:       conn,
 	}
 
 	// Send startup message
@@ -74,11 +74,11 @@ func (k *Klio) HandleConnection(conn net.Conn, exit chan bool) {
 
 		// Create Content
 		context := &Context{
-			Klio:    k,
-			Event:   event,
-			Message: packet,
-			Client:  client,
-			Conn:    conn,
+			Klio:       k,
+			Event:      event,
+			Message:    packet,
+			ClientAddr: client,
+			Conn:       conn,
 		}
 
 		// Check that this is a valid message we handle handle
